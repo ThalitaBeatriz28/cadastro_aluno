@@ -16,39 +16,77 @@ ARQUIVO = "alunos.txt"  # Define a constante global com o nome do arquivo texto
 # Cabeçalho gravado no início do arquivo, só para deixar organizado
 # quando alguém abrir o alunos.txt em um editor de texto comum
 CABECALHO = (  # Define a constante com a string multilinha do cabeçalho
-    "# ================================================\n"  # Linha decorativa no arquivo
+    "# ==========================================================\n"  # Linha decorativa no arquivo
     "# ARQUIVO DE ALUNOS - GERADO PELO SISTEMA EM PYTHON\n"  # Título no arquivo
     "# NAO EDITE ESTE ARQUIVO MANUALMENTE\n"  # Aviso no arquivo
-    "# FORMATO: NOME (20 colunas) ; NOTA\n"  # Formatação usada no arquivo
-    "# ================================================\n"  # Linha decorativa no arquivo
+    "# Os dados abaixo estao organizados em forma de tabela\n"  # Explica o formato de tabela do arquivo
+    "# ==========================================================\n"  # Linha decorativa no arquivo
 )  # Fecha a atribuição da constante CABECALHO
 
 # Largura usada na caixa do menu (efeito visual)
 LARGURA_MENU = 44  # Define a largura padrão em caracteres para o menu visual
 
-# Larguras das colunas da tabela de listagem
-COL_NOME = 20  # Define a largura da coluna 'Nome'
+# Larguras das colunas, usadas tanto na tabela do console quanto na tabela
+# gravada dentro do arquivo alunos.txt (assim as duas ficam sempre iguais)
+COL_NOME = 35  # Define a largura da coluna 'Nome' (aumentada de 20 para 35, para caber nomes grandes)
 COL_NOTA = 8  # Define a largura da coluna 'Nota'
 COL_SITUACAO = 11  # Define a largura da coluna 'Situação'
+
+# Texto usado para separar as colunas dentro do arquivo texto
+SEPARADOR_COLUNA = " | "  # Um espaço, uma barra vertical e outro espaço, para dar respiro entre as colunas
+
+
+# ------------------------------------------------------------
+# Monta o cabeçalho "de tabela" (nomes das colunas + linha de
+# traços) que fica gravado no início dos dados do arquivo texto,
+# para que o alunos.txt fique visualmente parecido com uma tabela
+# mesmo quando aberto em um editor de texto comum (Bloco de Notas).
+# ------------------------------------------------------------
+def montar_cabecalho_tabela():  # Define a função que gera as duas linhas de cabeçalho da tabela
+    linha_titulos = (  # Monta a linha com o nome de cada coluna, já alinhado com a largura de cada uma
+        f"{'NOME':<{COL_NOME}}" + SEPARADOR_COLUNA +  # Coluna Nome, alinhada à esquerda
+        f"{'NOTA':^{COL_NOTA}}" + SEPARADOR_COLUNA +  # Coluna Nota, centralizada
+        f"{'SITUACAO':^{COL_SITUACAO}}\n"  # Coluna Situação, centralizada
+    )  # Fecha a montagem da linha de títulos
+    linha_tracos = (  # Monta a linha de traços que separa o título das linhas de dados
+        "-" * COL_NOME + "-+-" +  # Traços do tamanho da coluna Nome, seguidos do "cruzamento" com a próxima coluna
+        "-" * COL_NOTA + "-+-" +  # Traços do tamanho da coluna Nota
+        "-" * COL_SITUACAO + "\n"  # Traços do tamanho da coluna Situação
+    )  # Fecha a montagem da linha de traços
+    return linha_titulos + linha_tracos  # Devolve as duas linhas já prontas para serem gravadas
+
+
+# ------------------------------------------------------------
+# Calcula a situação do aluno a partir da nota. Fica centralizado
+# em uma função só para não haver risco de o texto gravado no
+# arquivo ficar "desatualizado" em relação à nota do aluno.
+# ------------------------------------------------------------
+def classificar_situacao(nota):  # Define a função que decide a situação a partir da nota
+    if nota >= 6:  # Verifica se a nota atinge a média de aprovação
+        return "APROVADO"  # Retorna o texto de aprovado
+    return "REPROVADO"  # Retorna o texto de reprovado caso contrário
 
 
 # ------------------------------------------------------------
 # Garante que o arquivo já exista com o cabeçalho, antes de
-# começarmos a acrescentar (append) registros nele
+# começarmos a trabalhar com ele.
 # ------------------------------------------------------------
 def garantir_cabecalho():  # Define a função responsável por criar o arquivo com cabeçalho caso não exista
     if not os.path.exists(ARQUIVO):  # Verifica se o arquivo ainda NÃO existe no diretório
         try:  # Inicia bloco para tratamento de exceção ao tentar criar/escrever o arquivo
             with open(ARQUIVO, "w", encoding="utf-8") as dados:  # Abre o arquivo no modo escrita ("w")
-                dados.write(CABECALHO)  # Escreve o cabeçalho inicial no arquivo criado
-        except PermissionError:  # Captura erro caso o programa não tenha permissão de escrita
-            print(Fore.RED + "✘ Não foi possível criar o arquivo alunos.txt." + Style.RESET_ALL)  # Exibe erro em vermelho
+                dados.write(CABECALHO)  # Escreve o cabeçalho de comentários no arquivo criado
+                dados.write(montar_cabecalho_tabela())  # Escreve também o cabeçalho de tabela (títulos + traços)
+        except OSError as erro:  # Captura qualquer erro de sistema/permissão ao criar o arquivo
+            print(Fore.RED + f"✘ Não foi possível criar o arquivo alunos.txt. ({erro})" + Style.RESET_ALL)  # Exibe erro em vermelho
 
 
 # ------------------------------------------------------------
 # Lê o arquivo texto e devolve uma lista de dicionários,
 # ignorando as linhas de cabeçalho (que começam com #) e
-# pulando, sem travar o programa, qualquer linha corrompida
+# pulando, sem travar o programa, qualquer linha corrompida.
+# A situação NÃO é lida do arquivo: ela é sempre recalculada
+# a partir da nota, para nunca ficar inconsistente.
 # ------------------------------------------------------------
 def carregar_alunos():  # Define a função responsável por carregar os alunos do arquivo texto
     alunos = []  # Inicializa uma lista vazia para armazenar os alunos lidos
@@ -58,41 +96,61 @@ def carregar_alunos():  # Define a função responsável por carregar os alunos 
     try:  # Inicia bloco para tratamento de exceção ao tentar ler o arquivo
         with open(ARQUIVO, "r", encoding="utf-8") as dados:  # Abre o arquivo no modo leitura ("r")
             linhas = dados.readlines()  # Lê todas as linhas do arquivo e armazena numa lista
-    except PermissionError:  # Captura erro caso o programa não tenha permissão de leitura
-        print(Fore.RED + "✘ Não foi possível abrir o arquivo alunos.txt." + Style.RESET_ALL)  # Exibe erro em vermelho
-        return alunos  # Retorna a lista vazia em caso de erro de permissão
+    except OSError as erro:  # Captura erro caso o programa não consiga ler o arquivo
+        print(Fore.RED + f"✘ Não foi possível abrir o arquivo alunos.txt. ({erro})" + Style.RESET_ALL)  # Exibe erro em vermelho
+        return alunos  # Retorna a lista vazia em caso de erro
 
     for linha in linhas:  # Itera sobre cada linha lida do arquivo
         linha_limpa = linha.strip()  # Remove espaços em branco e quebras de linha nas extremidades
-        # Ignora linhas em branco e linhas de cabeçalho (comentários)
+
+        # Ignora linhas em branco e linhas de cabeçalho (comentários iniciados com #)
         if linha_limpa == "" or linha_limpa.startswith("#"):  # Checa se a linha está vazia ou é comentário
             continue  # Pula para a próxima iteração do laço
+
+        # Ignora a linha de títulos da tabela (ex: "NOME  | NOTA | SITUACAO")
+        if linha_limpa.upper().startswith("NOME"):  # Checa se a linha é o cabeçalho de títulos da tabela
+            continue  # Pula, pois não é um registro de aluno
+
+        # Ignora a linha de traços que separa o título das linhas de dados (ex: "----+----+----")
+        if set(linha_limpa) <= {"-", "+"}:  # Verifica se a linha é composta só por traços e cruzamentos
+            continue  # Pula, pois é apenas um elemento visual da tabela
+
         try:  # Inicia bloco para tratamento de conversão de dados da linha
-            partes = linha_limpa.split(";")  # Divide a linha em partes usando o delimitador ";"
-            nome = partes[0].strip()  # Extrai o nome e remove espaços adicionais
-            nota = float(partes[1].strip())  # Extrai a nota e converte para número de ponto flutuante (float)
-            alunos.append({"nome": nome, "nota": nota})  # Adiciona um dicionário com nome e nota à lista de alunos
-        except (ValueError, IndexError):  # Captura erro se o split falhar ou se a nota não for número válido
-            # Linha mal formatada (sem ";" ou nota inválida) é ignorada
+            partes = linha_limpa.split(SEPARADOR_COLUNA)  # Divide a linha em partes usando o separador de colunas " | "
+            nome = partes[0].strip()  # Extrai o nome e remove espaços do começo/fim
+            nota = float(partes[1].strip())  # Extrai a nota e remove espaços, convertendo para float
+            # partes[2] (situação) é ignorada de propósito: é recalculada pela função classificar_situacao()
+            alunos.append({"nome": nome, "nota": nota})  # Adiciona o dicionário do aluno à lista
+        except (ValueError, IndexError):  # Captura erro se o split falhar ou a nota não for um número válido
+            # Linha mal formatada (fora do padrão ou valor inválido) é ignorada, sem travar o programa
             continue  # Pula linhas corrompidas e prossegue o laço
 
     return alunos  # Retorna a lista completa com os alunos carregados
 
 
 # ------------------------------------------------------------
-# Reescreve o arquivo inteiro (cabeçalho + alunos), usada
-# depois de alterar ou excluir um registro.
+# Reescreve o arquivo inteiro (cabeçalho + alunos), usada tanto
+# para cadastrar quanto para alterar ou excluir um registro.
 # Devolve True se conseguiu salvar, False se deu erro.
 # ------------------------------------------------------------
 def salvar_todos(alunos):  # Define a função para regravar toda a lista no arquivo
     try:  # Inicia bloco para tratamento de exceções de escrita
         with open(ARQUIVO, "w", encoding="utf-8") as dados:  # Sobrescreve o arquivo no modo escrita ("w")
-            dados.write(CABECALHO)  # Grava o cabeçalho no topo do arquivo
+            dados.write(CABECALHO)  # Grava o cabeçalho de comentários no topo do arquivo
+            dados.write(montar_cabecalho_tabela())  # Grava o cabeçalho de tabela (títulos das colunas + traços)
             for aluno in alunos:  # Itera sobre cada dicionário de aluno na lista
-                dados.write(f"{aluno['nome']:<20};{aluno['nota']:.2f}\n")  # Escreve os dados formatados com alinhamento
+                situacao = classificar_situacao(aluno["nota"])  # Recalcula a situação a partir da nota atual
+                # Grava cada campo alinhado dentro da largura da sua coluna, separado por " | ",
+                # para que o arquivo alunos.txt fique visualmente parecido com uma tabela
+                linha = (  # Monta a linha de dados do aluno já formatada como uma linha de tabela
+                    f"{aluno['nome']:<{COL_NOME}}" + SEPARADOR_COLUNA +  # Nome alinhado à esquerda
+                    f"{aluno['nota']:^{COL_NOTA}.2f}" + SEPARADOR_COLUNA +  # Nota centralizada, com 2 casas decimais
+                    f"{situacao:^{COL_SITUACAO}}\n"  # Situação centralizada
+                )  # Fecha a montagem da linha
+                dados.write(linha)  # Escreve a linha formatada no arquivo
         return True  # Retorna verdadeiro em caso de sucesso
-    except PermissionError:  # Captura erro de permissão de escrita no arquivo
-        print(Fore.RED + "✘ Não foi possível salvar. Feche o arquivo se estiver aberto." + Style.RESET_ALL)  # Exibe erro em vermelho
+    except OSError as erro:  # Captura erro de sistema/permissão de escrita no arquivo
+        print(Fore.RED + f"✘ Não foi possível salvar. Feche o arquivo se estiver aberto. ({erro})" + Style.RESET_ALL)  # Exibe erro em vermelho
         return False  # Retorna falso indicando que a operação falhou
 
 
@@ -122,12 +180,13 @@ def exibir_menu():  # Define a função de exibição visual do menu
 
 # ------------------------------------------------------------
 # Pede um nome ao usuário e SÓ sai do laço quando o valor
-# digitado for texto válido (sem números/símbolos e não vazio).
-# Serve tanto para cadastrar quanto para buscar um aluno.
+# digitado for texto válido (sem números/símbolos e não vazio,
+# sem espaços sobrando no começo/fim). Serve tanto para
+# cadastrar quanto para buscar um aluno.
 # ------------------------------------------------------------
 def ler_nome(mensagem):  # Define a função auxiliar para leitura e validação de nomes
-    while True:  # Laço infinito até que a entrada seja considerada válida
-        nome = input(mensagem).strip().title()  # Lê o input, remove espaços sobressalentes e formata em Title Case
+    while True:  # Laço que só termina quando a entrada for considerada válida (função "redondinha")
+        nome = input(mensagem).strip().title()  # Lê o input, remove espaços do começo/fim e formata em Title Case
 
         if nome == "":  # Valida se a string fornecida está vazia
             print(Fore.RED + "✘ O nome não pode ficar vazio!" + Style.RESET_ALL)  # Alerta o usuário em vermelho
@@ -146,7 +205,7 @@ def ler_nome(mensagem):  # Define a função auxiliar para leitura e validação
 # ou ponto como separador decimal (ex: 8,5 ou 8.5).
 # ------------------------------------------------------------
 def ler_nota(mensagem):  # Define a função auxiliar para leitura e validação de notas
-    while True:  # Laço infinito para garantir entrada válida
+    while True:  # Laço que só termina quando a entrada for considerada válida (função "redondinha")
         entrada = input(mensagem).strip().replace(",", ".")  # Lê o input, remove espaços e troca vírgula por ponto
 
         try:  # Tenta realizar a conversão do input para o tipo float
@@ -163,26 +222,20 @@ def ler_nota(mensagem):  # Define a função auxiliar para leitura e validação
 
 
 # ------------------------------------------------------------
-# Cadastra um novo aluno, acrescentando uma linha ao arquivo
+# Cadastra um novo aluno, gravando nome, nota e situação
 # ------------------------------------------------------------
 def cadastrar_aluno():  # Define a função de cadastro de um novo aluno
     print(Fore.CYAN + Style.BRIGHT + "\n===== CADASTRAR ALUNO =====" + Style.RESET_ALL)  # Exibe título do menu de cadastro
 
-    # ler_nome() e ler_nota() ficam presos em while True até vir um valor válido
+    # ler_nome() e ler_nota() ficam presas em while True até vir um valor válido
     nome = ler_nome("Digite o nome do aluno: ")  # Solicita e valida o nome
     nota = ler_nota("Digite a nota do aluno: ")  # Solicita e valida a nota
 
-    garantir_cabecalho()  # Executa a garantia da existência do arquivo/cabeçalho antes da gravação
+    alunos = carregar_alunos()  # Carrega os alunos já cadastrados para acrescentar o novo no final
+    alunos.append({"nome": nome, "nota": nota})  # Adiciona o novo aluno à lista em memória
 
-    try:  # Tenta abrir e gravar a nova entrada no arquivo
-        # Modo "a" (append) acrescenta a linha sem apagar quem já existe
-        with open(ARQUIVO, "a", encoding="utf-8") as dados:  # Abre o arquivo no modo de adição ("a")
-            dados.write(f"{nome:<20};{nota:.2f}\n")  # Grava o nome ajustado a 20 caracteres e nota com 2 casas decimais
-    except PermissionError:  # Trata falha de acesso para escrita
-        print(Fore.RED + "✘ Não foi possível salvar. Feche o arquivo se estiver aberto." + Style.RESET_ALL)  # Exibe erro
-        return  # Sai da função em caso de falha
-
-    print(Fore.GREEN + "✔ Aluno cadastrado com sucesso!" + Style.RESET_ALL)  # Exibe confirmação de cadastro
+    if salvar_todos(alunos):  # Regrava o arquivo inteiro (cabeçalho + todos os alunos, já com o novo)
+        print(Fore.GREEN + "✔ Aluno cadastrado com sucesso!" + Style.RESET_ALL)  # Exibe confirmação de cadastro
 
 
 # ------------------------------------------------------------
@@ -222,13 +275,12 @@ def listar_alunos():  # Define a função para listagem e exibição dos alunos
     for aluno in alunos:  # Itera por cada aluno carregado
         nome = aluno["nome"]  # Extrai o nome do dicionário atual
         nota = aluno["nota"]  # Extrai a nota do dicionário atual
+        situacao_texto = classificar_situacao(nota)  # Recalcula a situação a partir da nota atual
 
-        if nota >= 6:  # Define se o aluno atingiu a média de aprovação (>= 6)
-            situacao_texto = "APROVADO"  # Define o texto da situação
+        if situacao_texto == "APROVADO":  # Verifica se a situação calculada é aprovado
             cor_situacao = Fore.GREEN  # Atribui cor verde para aprovados
             aprovados += 1  # Incrementa a contagem de aprovados
-        else:  # Caso a nota seja menor que 6
-            situacao_texto = "REPROVADO"  # Define o texto da situação
+        else:  # Caso contrário, o aluno está reprovado
             cor_situacao = Fore.RED  # Atribui cor vermelha para reprovados
             reprovados += 1  # Incrementa a contagem de reprovados
 
@@ -270,7 +322,7 @@ def alterar_aluno():  # Define a função responsável pela alteração dos dado
         print(Fore.YELLOW + "⚠ Nenhum aluno cadastrado ainda." + Style.RESET_ALL)  # Exibe aviso de lista vazia
         return  # Encerra a função
 
-    while True:  # Entra num laço de busca para a alteração
+    while True:  # Entra num laço de busca para a alteração (função "redondinha")
         # Reaproveita ler_nome() também na busca, já que todo nome salvo é só letras
         nome_procurado = ler_nome("Digite o nome do aluno que deseja alterar: ")  # Pede o nome do alvo da busca
 
@@ -309,7 +361,7 @@ def excluir_aluno():  # Define a função de exclusão de alunos
         print(Fore.YELLOW + "⚠ Nenhum aluno cadastrado ainda." + Style.RESET_ALL)  # Exibe aviso
         return  # Sai da função
 
-    while True:  # Laço para lidar com a digitação do nome para remoção
+    while True:  # Laço para lidar com a digitação do nome para remoção (função "redondinha")
         # Reaproveita ler_nome() também na busca, já que todo nome salvo é só letras
         nome_procurado = ler_nome("Digite o nome do aluno que deseja excluir: ")  # Coleta o nome digitado validado
 
@@ -324,7 +376,7 @@ def excluir_aluno():  # Define a função de exclusão de alunos
 
         if not encontrado:  # Caso a busca não tenha retornado correspondência
             print(Fore.RED + "✘ Aluno não encontrado! Tente novamente." + Style.RESET_ALL)  # Notifica usuário
-            continue  # Volta para o início do laço repedindo a digitação do nome
+            continue  # Volta para o início do laço repetindo a digitação do nome
 
         if salvar_todos(novos_alunos):  # Reescreve o arquivo gravando apenas a lista filtrada sem o aluno removido
             print(Fore.GREEN + "✔ Aluno excluído com sucesso!" + Style.RESET_ALL)  # Confirmação de remoção
@@ -336,6 +388,8 @@ def excluir_aluno():  # Define a função de exclusão de alunos
 # PROGRAMA PRINCIPAL
 # Mantém o menu ativo até o usuário escolher sair (opção 0)
 # ------------------------------------------------------------
+garantir_cabecalho()  # Garante que o arquivo já exista com o cabeçalho antes de iniciar o menu
+
 while True:  # Laço principal de execução constante do programa
     exibir_menu()  # Chama a função para desenhar a interface do menu
     opcao = input(Fore.WHITE + "Escolha uma opção: " + Style.RESET_ALL).strip()  # Lê e limpa a opção escolhida pelo usuário
