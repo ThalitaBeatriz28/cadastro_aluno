@@ -145,7 +145,7 @@ def mostrar():
             if not linha:
                 continue
             partes = linha.split(";")
-            nome = partes[0].strip().title()
+            nome = partes[0].strip()
             nota = float(partes[1].strip())
             total_validos += 1
             
@@ -214,7 +214,7 @@ def alterar():
                 continue
 
             partes = linha_limpa.split(";")
-            nome = partes[0].strip().title()
+            nome = partes[0].strip()
             nota = float(partes[1].strip())
 
             if nome.lower() == nome_aluno.lower():
@@ -225,7 +225,7 @@ def alterar():
                 while True:
                     novo_nome = input(Fore.WHITE + "Digite o novo nome (Clique ENTER para não alterar o nome): " + Style.RESET_ALL).strip().title()
                     if novo_nome == "":
-                        novo_nome = nome.title()  # Mantém o nome antigo se nada for digitado
+                        novo_nome = nome  # Mantém o nome antigo se nada for digitado
                         break
                     elif not novo_nome.replace(" ", "").isalpha():
                         print(Fore.RED + "✘ Digite apenas letras, sem números ou símbolos!" + Style.RESET_ALL)
